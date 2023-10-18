@@ -127,38 +127,50 @@ app.get("/quote", (req, res) => {
   const quantity: number = req.body.quantity;
   const userId: string = req.body.userId;
   res.json({
-    quote: getQuotePrice(side, quantity, userId) * quantity,
-  });
+    quote: getQuote(side, quantity, userId)
+  })
 });
 
-function getQuotePrice(side: string, quantity: number, userId: string){
-  let quotePrice = 0;
+app.delete("/reset", (req, res) => {
+  // Clears out all bids and asks (for testing purpose only)
+  while(bids.length > 0) {
+    bids.pop();
+  }
+  while(asks.length > 0) {
+    asks.pop();
+  }
+  res.json({
+    status: "ok"
+  })
+});
+
+function getQuote(side: string, quantity: number, userId: string){
+  // Assume markets to be liquid enough to buy given quantity
+  let quote;
   if(side == "ask"){
-    quotePrice = 0;
+    quote = null;
   }
   else if(quantity == 0){
-    quotePrice = 0;
+    quote = 0;
   }
   else{
-    let quoteTotal = 0, quoteCount = 0, curQuantity = quantity;
+    let curQuantity = quantity;
+    quote = 0;
     for (let i = asks.length - 1; i >= 0; i--) {
       if(asks[i].userId != userId){
-        if(asks[i].quantity > curQuantity){
-          quoteCount++;
-          quoteTotal += asks[i].price;
+        if(asks[i].quantity >= curQuantity){
+          quote += curQuantity * asks[i].price;
+          curQuantity = 0;
           break;
         }
         else{
+          quote += asks[i].quantity * asks[i].price;
           curQuantity -= asks[i].quantity;
-          quoteCount++;
-          quoteTotal += asks[i].price;
         }
       }
     }
-    if(quoteCount != 0)
-      quotePrice = quoteTotal / quoteCount;
   }
-  return quotePrice;
+  return quote;
 }
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
