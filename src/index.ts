@@ -13,7 +13,7 @@ interface User {
   id: string;
   balances: Balances;
 };
-
+  
 interface Order {
   userId: string;
   price: number;
@@ -66,7 +66,7 @@ app.post("/order", (req: any, res: any) => {
       price,
       quantity: remainingQty
     })
-    asks.sort((a, b) => a.price < b.price ? -1 : 1);
+    asks.sort((a, b) => a.price > b.price ? 1 : -1);
   }
 
   res.json({
@@ -123,6 +123,33 @@ app.get("/balance/:userId", (req, res) => {
 
 app.get("/quote", (req, res) => {
   // TODO: Assignment
+  //have to create an end point where user can get the total price for the no. of quantities he wanted to buy
+  const side: string = req.body.side;
+  const quantity: number = req.body.quantity;
+  const userId: string = req.body.userId;
+  
+  let price=0;
+  let tempNumber=number;
+  for (let i = asks.length - 1; i >= 0; i--) {
+      if (asks[i].quantity >= number) {
+        price+=number*ask[i].price;
+        number=0;
+
+        return price;
+      } else {
+        price+=ask[i].quantity*ask[i].price;
+        number -= asks[i].quantity;
+      }
+    }
+
+  if(number!=0){
+    let n =tempNumber-number;//n represent gap between number of stocks quantities required  and number of stock quantities present for sell
+    return -1;
+    // not enough stocks available to be sold   
+  }
+
+  
+  
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
@@ -146,11 +173,11 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       }
       if (asks[i].quantity > remainingQuantity) {
         asks[i].quantity -= remainingQuantity;
-        flipBalance(asks[i].userId, userId, remainingQuantity, price);
+        flipBalance(asks[i].userId, userId, remainingQuantity, ask[i].price);
         return 0;
       } else {
         remainingQuantity -= asks[i].quantity;
-        flipBalance(asks[i].userId, userId, asks[i].quantity, price);
+        flipBalance(asks[i].userId, userId, asks[i].quantity, ask[i].price);
         asks.pop();
       }
     }
