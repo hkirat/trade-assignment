@@ -164,7 +164,7 @@ function fillOrders(
       }
       if (asks[i].quantity > remainingQuantity) {
         asks[i].quantity -= remainingQuantity;
-        flipBalance(asks[i].userId, userId, remainingQuantity, price);
+        flipBalance(asks[i].userId, userId, remainingQuantity, asks[i].price);
         return 0;
       } else {
         remainingQuantity -= asks[i].quantity;
