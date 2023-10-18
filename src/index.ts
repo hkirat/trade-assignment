@@ -12,7 +12,7 @@ interface Balances {
 interface User {
   id: string;
   balances: Balances;
-};
+}
 
 interface Order {
   userId: string;
@@ -22,19 +22,22 @@ interface Order {
 
 export const TICKER = "GOOGLE";
 
-const users: User[] = [{
-  id: "1",
-  balances: {
-    "GOOGLE": 10,
-    "USD": 50000
-  }
-}, {
-  id: "2",
-  balances: {
-    "GOOGLE": 10,
-    "USD": 50000
-  }
-}];
+const users: User[] = [
+  {
+    id: "1",
+    balances: {
+      GOOGLE: 10,
+      USD: 50000,
+    },
+  },
+  {
+    id: "2",
+    balances: {
+      GOOGLE: 10,
+      USD: 50000,
+    },
+  },
+];
 
 const bids: Order[] = [];
 const asks: Order[] = [];
@@ -57,36 +60,36 @@ app.post("/order", (req: any, res: any) => {
     bids.push({
       userId,
       price,
-      quantity: remainingQty
+      quantity: remainingQty,
     });
-    bids.sort((a, b) => a.price < b.price ? 1 : -1);
+    bids.sort((a, b) => (a.price < b.price ? -1 : 1));
   } else {
     asks.push({
       userId,
       price,
-      quantity: remainingQty
-    })
-    asks.sort((a, b) => a.price < b.price ? -1 : 1);
+      quantity: remainingQty,
+    });
+    asks.sort((a, b) => (a.price < b.price ? 1 : -1));
   }
 
   res.json({
     filledQuantity: quantity - remainingQty,
-  })
-})
+  });
+});
 
 app.get("/depth", (req: any, res: any) => {
   const depth: {
     [price: string]: {
-      type: "bid" | "ask",
-      quantity: number,
-    }
+      type: "bid" | "ask";
+      quantity: number;
+    };
   } = {};
 
   for (let i = 0; i < bids.length; i++) {
     if (!depth[bids[i].price]) {
       depth[bids[i].price] = {
         quantity: bids[i].quantity,
-        type: "bid"
+        type: "bid",
       };
     } else {
       depth[bids[i].price].quantity += bids[i].quantity;
@@ -97,47 +100,94 @@ app.get("/depth", (req: any, res: any) => {
     if (!depth[asks[i].price]) {
       depth[asks[i].price] = {
         quantity: asks[i].quantity,
-        type: "ask"
-      }
+        type: "ask",
+      };
     } else {
       depth[asks[i].price].quantity += asks[i].quantity;
     }
   }
 
   res.json({
-    depth
-  })
-})
+    depth,
+  });
+});
 
 app.get("/balance/:userId", (req, res) => {
   const userId = req.params.userId;
-  const user = users.find(x => x.id === userId);
+  const user = users.find((x) => x.id === userId);
   if (!user) {
     return res.json({
       USD: 0,
-      [TICKER]: 0
-    })
+      [TICKER]: 0,
+    });
   }
   res.json({ balances: user.balances });
-})
-
-app.get("/quote", (req, res) => {
-  // TODO: Assignment
 });
 
-function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
-  let user1 = users.find(x => x.id === userId1);
-  let user2 = users.find(x => x.id === userId2);
+app.post("/quote", (req, res) => {
+  // TODO: Assignment
+  const quantity: number = req.body.quantity;
+  const side: string = req.body.side;
+  const userId = req.body.userId;
+
+  const sortedAsks = [...asks].sort((a, b) => a.price - b.price);
+  const sortedBids = [...bids].sort((a, b) => a.price - b.price);
+
+  let ctr = 0;
+  let payPrice = 0;
+  let sumAmt = 0;
+  if (side === "bid") {
+    for (let i = 0; i < sortedBids.length; i++) {
+      ctr += sortedBids[i].quantity;
+      if (ctr >= quantity) {
+        for (let j = 0; j < i + 2; j++) {
+          sumAmt = sumAmt + sortedBids[i].price;
+        }
+        payPrice = payPrice / i;
+        break;
+      }
+    }
+  }
+
+  else{
+    for (let i = 0; i < sortedAsks.length; i++) {
+      ctr += sortedAsks[i].quantity;
+      if (ctr >= quantity) {
+        for (let j = 0; j < i + 2; j++) {
+          sumAmt = sumAmt + sortedAsks[i].price;
+        }
+        payPrice = payPrice / i;
+        break;
+      }
+    }
+  }
+
+  res.json({ payPrice });
+});
+
+function flipBalance(
+  userId1: string,
+  userId2: string,
+  quantity: number,
+  price: number
+) {
+  let user1 = users.find((x) => x.id === userId1);
+  let user2 = users.find((x) => x.id === userId2);
   if (!user1 || !user2) {
     return;
   }
   user1.balances[TICKER] -= quantity;
   user2.balances[TICKER] += quantity;
-  user1.balances["USD"] += (quantity * price);
-  user2.balances["USD"] -= (quantity * price);
+  user1.balances["USD"] += quantity * price;
+  user2.balances["USD"] -= quantity * price;
 }
 
-function fillOrders(side: string, price: number, quantity: number, userId: string): number {
+function fillOrders(
+  side: string,
+  price: number,
+  quantity: number,
+  userId: string
+): number {
   let remainingQuantity = quantity;
   if (side === "bid") {
     for (let i = asks.length - 1; i >= 0; i--) {
@@ -146,11 +196,11 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       }
       if (asks[i].quantity > remainingQuantity) {
         asks[i].quantity -= remainingQuantity;
-        flipBalance(asks[i].userId, userId, remainingQuantity, price);
+        flipBalance(asks[i].userId, userId, remainingQuantity, asks[i].price);
         return 0;
       } else {
         remainingQuantity -= asks[i].quantity;
-        flipBalance(asks[i].userId, userId, asks[i].quantity, price);
+        flipBalance(asks[i].userId, userId, asks[i].quantity, asks[i].price);
         asks.pop();
       }
     }
@@ -173,4 +223,3 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
 
   return remainingQuantity;
 }
-
