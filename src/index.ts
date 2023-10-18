@@ -123,7 +123,43 @@ app.get("/balance/:userId", (req, res) => {
 
 app.get("/quote", (req, res) => {
   // TODO: Assignment
+  const side: string = req.body.side;
+  const quantity: number = req.body.quantity;
+  const userId: string = req.body.userId;
+  res.json({
+    quote: getQuotePrice(side, quantity, userId) * quantity,
+  });
 });
+
+function getQuotePrice(side: string, quantity: number, userId: string){
+  let quotePrice = 0;
+  if(side == "ask"){
+    quotePrice = 0;
+  }
+  else if(quantity == 0){
+    quotePrice = 0;
+  }
+  else{
+    let quoteTotal = 0, quoteCount = 0, curQuantity = quantity;
+    for (let i = asks.length - 1; i >= 0; i--) {
+      if(asks[i].userId != userId){
+        if(asks[i].quantity > curQuantity){
+          quoteCount++;
+          quoteTotal += asks[i].price;
+          break;
+        }
+        else{
+          curQuantity -= asks[i].quantity;
+          quoteCount++;
+          quoteTotal += asks[i].price;
+        }
+      }
+    }
+    if(quoteCount != 0)
+      quotePrice = quoteTotal / quoteCount;
+  }
+  return quotePrice;
+}
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
   let user1 = users.find(x => x.id === userId1);
