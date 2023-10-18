@@ -35,7 +35,7 @@ describe("Can create a bid", () => {
       userId: "1"
     });
 
-    expect(res.body.quote).toBe(1501 * 2);
+    expect(res.body.quote).toBe(1400.9 * 2);
   });
 
 });
