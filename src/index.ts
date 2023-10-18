@@ -59,14 +59,14 @@ app.post("/order", (req: any, res: any) => {
       price,
       quantity: remainingQty
     });
-    bids.sort((a, b) => a.price < b.price ? 1 : -1);
+    bids.sort((a, b) => a.price < b.price ? -1 : 1);
   } else {
     asks.push({
       userId,
       price,
       quantity: remainingQty
     })
-    asks.sort((a, b) => a.price < b.price ? -1 : 1);
+    asks.sort((a, b) => a.price < b.price ? 1 : -1);
   }
 
   res.json({
@@ -123,7 +123,62 @@ app.get("/balance/:userId", (req, res) => {
 
 app.get("/quote", (req, res) => {
   // TODO: Assignment
+  const side: string = req.body.side;
+  const quantity: number = req.body.quantity;
+  const userId: string = req.body.userId;
+  res.json({
+    quote: getQuote(side, quantity, userId)
+  })
 });
+
+app.delete("/reset", (req, res) => {
+  // Clears out all bids and asks (for testing purpose only)
+  while(bids.length > 0) {
+    bids.pop();
+  }
+  while(asks.length > 0) {
+    asks.pop();
+  }
+  res.json({
+    status: "ok"
+  })
+});
+
+function getQuote(side: string, quantity: number, userId: string){
+  // Assume markets to be liquid enough to bid/ask given quantity
+  let quote = 0, curQuantity = quantity;
+  if(side === "bid"){
+    for (let i = asks.length - 1; i >= 0; i--) {
+      if(asks[i].userId != userId){
+        if(asks[i].quantity >= curQuantity){
+          quote += curQuantity * asks[i].price;
+          curQuantity = 0;
+          break;
+        }
+        else{
+          quote += asks[i].quantity * asks[i].price;
+          curQuantity -= asks[i].quantity;
+        }
+      }
+    }
+  }
+  else if(side === "ask"){
+    for (let i = 0; i < bids.length; i++) {
+      if(bids[i].userId != userId){
+        if(bids[i].quantity >= curQuantity){
+          quote += curQuantity * bids[i].price;
+          curQuantity = 0;
+          break;
+        }
+        else{
+          quote += bids[i].quantity * bids[i].price;
+          curQuantity -= bids[i].quantity;
+        }
+      }
+    }
+  }
+  return quote;
+}
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
   let user1 = users.find(x => x.id === userId1);
@@ -146,7 +201,7 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       }
       if (asks[i].quantity > remainingQuantity) {
         asks[i].quantity -= remainingQuantity;
-        flipBalance(asks[i].userId, userId, remainingQuantity, price);
+        flipBalance(asks[i].userId, userId, remainingQuantity, asks[i].price);
         return 0;
       } else {
         remainingQuantity -= asks[i].quantity;

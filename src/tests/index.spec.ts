@@ -57,18 +57,269 @@ describe("Basic tests", () => {
 
   it("Ensures orderbook updates", async () => {
     let res = await request(app).get("/depth").send();
-    expect(res.body.depth["1501"].quantity).toBe(3);
+    expect(res.body.depth["1400.9"].quantity).toBe(8);
   })
 
   it("Ensures balances update", async () => {
     let res = await request(app).get("/balance/1").send();
     expect(res.body.balances[TICKER]).toBe(12);
-    expect(res.body.balances["USD"]).toBe(50000 - 2 * 1502);
+    expect(res.body.balances["USD"]).toBe(50000 - 2 * 1400.9);
 
     res = await request(app).get("/balance/2").send();
     expect(res.body.balances[TICKER]).toBe(8);
-    expect(res.body.balances["USD"]).toBe(50000 + 2 * 1502);
+    expect(res.body.balances["USD"]).toBe(50000 + 2 * 1400.9);
   })
 
 })
 
+describe("Can create a bid", () => {
+  beforeAll(async () => {
+    await request(app).delete("/reset");
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "bid",
+      price: 1400.1,
+      quantity: 1, 
+      userId: "1"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "ask",
+      price: 1400.9,
+      quantity: 10,
+      userId: "2"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "ask",
+      price: 1501,
+      quantity: 5,
+      userId: "2"
+    })
+
+  });
+
+  it("Can get the right quote", async () => {
+    let res = await request(app).get("/quote").send({
+      side: "bid",
+      quantity: 2,
+      userId: "1"
+    });
+
+    expect(res.body.quote).toBe(1400.9 * 2);
+  });
+
+});
+
+describe("Can create a bid", () => {
+  beforeAll(async () => {
+    await request(app).delete("/reset");
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "bid",
+      price: 1400.1,
+      quantity: 1, 
+      userId: "1"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "ask",
+      price: 1400.9,
+      quantity: 5,
+      userId: "2"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "ask",
+      price: 1501,
+      quantity: 5,
+      userId: "2"
+    })
+
+  });
+
+  it("Can get the right quote", async () => {
+    let res = await request(app).get("/quote").send({
+      side: "bid",
+      quantity: 10,
+      userId: "1"
+    });
+
+    expect(res.body.quote).toBe(1400.9 * 5 + 1501 * 5);
+  });
+
+});
+
+describe("Can create a bid", () => {
+  beforeAll(async () => {
+    await request(app).delete("/reset");
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "bid",
+      price: 1400.1,
+      quantity: 1, 
+      userId: "1"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "ask",
+      price: 1400.9,
+      quantity: 4,
+      userId: "2"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "ask",
+      price: 1501,
+      quantity: 10,
+      userId: "2"
+    })
+
+  });
+
+  it("Can get the right quote", async () => {
+    let res = await request(app).get("/quote").send({
+      side: "bid",
+      quantity: 10,
+      userId: "1"
+    });
+
+    expect(res.body.quote).toBe(1400.9 * 4 + 1501 * 6);
+  });
+
+});
+
+describe("Can create an ask", () => {
+  beforeAll(async () => {
+    await request(app).delete("/reset");
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "ask",
+      price: 1400.1,
+      quantity: 1, 
+      userId: "1"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "bid",
+      price: 1400.9,
+      quantity: 11,
+      userId: "2"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "bid",
+      price: 1501,
+      quantity: 5,
+      userId: "2"
+    })
+
+  });
+
+  it("Can get the right quote", async () => {
+    let res = await request(app).get("/quote").send({
+      side: "ask",
+      quantity: 2,
+      userId: "1"
+    });
+
+    expect(res.body.quote).toBe(1400.9 * 2);
+  });
+
+});
+
+describe("Can create an ask", () => {
+  beforeAll(async () => {
+    await request(app).delete("/reset");
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "ask",
+      price: 1400.1,
+      quantity: 1, 
+      userId: "1"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "bid",
+      price: 1400.9,
+      quantity: 6,
+      userId: "2"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "bid",
+      price: 1501,
+      quantity: 5,
+      userId: "2"
+    })
+
+  });
+
+  it("Can get the right quote", async () => {
+    let res = await request(app).get("/quote").send({
+      side: "ask",
+      quantity: 10,
+      userId: "1"
+    });
+
+    expect(res.body.quote).toBe(1400.9 * 5 + 1501 * 5);
+  });
+
+});
+
+describe("Can create an ask", () => {
+  beforeAll(async () => {
+    await request(app).delete("/reset");
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "ask",
+      price: 1400.1,
+      quantity: 1, 
+      userId: "1"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "bid",
+      price: 1400.9,
+      quantity: 5,
+      userId: "2"
+    });
+
+    await request(app).post("/order").send({
+      type: "limit",
+      side: "bid",
+      price: 1501,
+      quantity: 10,
+      userId: "2"
+    })
+
+  });
+
+  it("Can get the right quote", async () => {
+    let res = await request(app).get("/quote").send({
+      side: "ask",
+      quantity: 10,
+      userId: "1"
+    });
+
+    expect(res.body.quote).toBe(1400.9 * 4 + 1501 * 6);
+  });
+
+});
