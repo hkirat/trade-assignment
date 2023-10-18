@@ -145,17 +145,9 @@ app.delete("/reset", (req, res) => {
 });
 
 function getQuote(side: string, quantity: number, userId: string){
-  // Assume markets to be liquid enough to buy given quantity
-  let quote;
-  if(side == "ask"){
-    quote = null;
-  }
-  else if(quantity == 0){
-    quote = 0;
-  }
-  else{
-    let curQuantity = quantity;
-    quote = 0;
+  // Assume markets to be liquid enough to bid/ask given quantity
+  let quote = 0, curQuantity = quantity;
+  if(side === "bid"){
     for (let i = asks.length - 1; i >= 0; i--) {
       if(asks[i].userId != userId){
         if(asks[i].quantity >= curQuantity){
@@ -166,6 +158,21 @@ function getQuote(side: string, quantity: number, userId: string){
         else{
           quote += asks[i].quantity * asks[i].price;
           curQuantity -= asks[i].quantity;
+        }
+      }
+    }
+  }
+  else if(side === "ask"){
+    for (let i = 0; i < bids.length; i++) {
+      if(bids[i].userId != userId){
+        if(bids[i].quantity >= curQuantity){
+          quote += curQuantity * bids[i].price;
+          curQuantity = 0;
+          break;
+        }
+        else{
+          quote += bids[i].quantity * bids[i].price;
+          curQuantity -= bids[i].quantity;
         }
       }
     }
