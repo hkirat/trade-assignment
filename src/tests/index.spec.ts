@@ -57,17 +57,17 @@ describe("Basic tests", () => {
 
   it("Ensures orderbook updates", async () => {
     let res = await request(app).get("/depth").send();
-    expect(res.body.depth["1501"].quantity).toBe(3);
+    expect(res.body.depth["1400.9"]?.quantity).toBe(8);
   })
 
   it("Ensures balances update", async () => {
     let res = await request(app).get("/balance/1").send();
     expect(res.body.balances[TICKER]).toBe(12);
-    expect(res.body.balances["USD"]).toBe(50000 - 2 * 1502);
+    expect(res.body.balances["USD"]).toBe(50000 - 2 * 1400.9);
 
     res = await request(app).get("/balance/2").send();
     expect(res.body.balances[TICKER]).toBe(8);
-    expect(res.body.balances["USD"]).toBe(50000 + 2 * 1502);
+    expect(res.body.balances["USD"]).toBe(50000 + 2 * 1400.9);
   })
 
 })
