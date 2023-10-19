@@ -124,8 +124,49 @@ app.get('/balance/:userId', (req, res) => {
   res.json({ balances: user.balances });
 });
 
-app.get('/quote', (req, res) => {
-  // TODO: Assignment
+app.post('/quote', (req, res) => {
+  const side = req.body.side as string;
+  const quantity = req.body.quantity as number;
+  const userId = req.body.userId as string;
+
+  let quote = 0;
+  let quantityLeft = quantity;
+
+  if (side === 'bid') {
+    for (let i = asks.length - 1; i >= 0; i--) {
+      if (asks[i].userId === userId) {
+        continue;
+      }
+
+      if (asks[i].quantity > quantityLeft) {
+        quote += quantityLeft * asks[i].price;
+        break;
+      } else {
+        quote += asks[i].quantity * asks[i].price;
+        quantityLeft -= asks[i].quantity;
+      }
+    }
+  } else if (side === 'ask') {
+    for (let i = bids.length - 1; i >= 0; i--) {
+      if (bids[i].userId === userId) {
+        continue;
+      }
+
+      if (bids[i].quantity > quantityLeft) {
+        quote += quantityLeft * bids[i].price;
+        break;
+      } else {
+        quote += bids[i].quantity * bids[i].price;
+        quantityLeft -= bids[i].quantity;
+      }
+    }
+  } else {
+    return res.status(400).json({ error: 'Invalid side' });
+  }
+
+  res.json({
+    quote,
+  });
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
@@ -164,11 +205,11 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       }
       if (bids[i].quantity > remainingQuantity) {
         bids[i].quantity -= remainingQuantity;
-        flipBalance(userId, bids[i].userId, remainingQuantity, bids[i].price);
+        flipBalance(userId, bids[i].userId, remainingQuantity, price);
         return 0;
       } else {
         remainingQuantity -= bids[i].quantity;
-        flipBalance(userId, bids[i].userId, bids[i].quantity, bids[i].price);
+        flipBalance(userId, bids[i].userId, bids[i].quantity, price);
         bids.pop();
       }
     }
