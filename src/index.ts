@@ -59,14 +59,14 @@ app.post("/order", (req: any, res: any) => {
       price,
       quantity: remainingQty
     });
-    bids.sort((a, b) => a.price < b.price ? 1 : -1);
+    bids.sort((a, b) => a.price > b.price ? 1 : -1); // ascending order
   } else {
     asks.push({
       userId,
       price,
       quantity: remainingQty
     })
-    asks.sort((a, b) => a.price < b.price ? -1 : 1);
+    asks.sort((a, b) => a.price < b.price ? 1 : -1); // descending order
   }
 
   res.json({
@@ -122,8 +122,32 @@ app.get("/balance/:userId", (req, res) => {
 })
 
 app.get("/quote", (req, res) => {
-  // TODO: Assignment
+  const { quantity, side, userId } = req.query;
+
+  const validAsks = Array.isArray(asks) && asks.length > 0;
+  const validBids = Array.isArray(bids) && bids.length > 0;
+
+  if (!validAsks && !validBids) {
+    return res.status(400).json({ error: "No valid asks or bids available" });
+  }
+
+  let averagePrice = 0;
+
+  if (side === 'BID') {
+    if (validAsks) {
+      const total = asks.reduce((acc, ask) => acc + ask.price, 0);
+      averagePrice = total / asks.length;
+    }
+  } else {
+    if (validBids) {
+      const total = bids.reduce((acc, bid) => acc + bid.price, 0);
+      averagePrice = total / bids.length;
+    }
+  }
+
+  res.json({ side, averagePrice });
 });
+
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
   let user1 = users.find(x => x.id === userId1);
@@ -146,11 +170,11 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       }
       if (asks[i].quantity > remainingQuantity) {
         asks[i].quantity -= remainingQuantity;
-        flipBalance(asks[i].userId, userId, remainingQuantity, price);
+        flipBalance(asks[i].userId, userId, remainingQuantity, asks[i].price);
         return 0;
       } else {
         remainingQuantity -= asks[i].quantity;
-        flipBalance(asks[i].userId, userId, asks[i].quantity, price);
+        flipBalance(asks[i].userId, userId, asks[i].quantity, asks[i].price);
         asks.pop();
       }
     }
@@ -173,4 +197,5 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
 
   return remainingQuantity;
 }
+
 
