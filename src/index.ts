@@ -121,8 +121,42 @@ app.get("/balance/:userId", (req, res) => {
   res.json({ balances: user.balances });
 })
 
-app.get("/quote", (req, res) => {
-  // TODO: Assignment
+app.post("/quote", (req, res) => {
+  const side = req.body.side;
+  const quantity = req.body.quantity;
+  const userId = req.body.userId;
+
+
+  if (side !== "bid" || isNaN(quantity) || quantity <= 0) {
+    return res.status(400).json({ error: "Invalid request parameters" });
+  }
+
+  const filterAsks = asks.filter((order) => order.userId != userId);
+  if (filterAsks.length === 0) {
+    return res.status(404).json({ error: "No asks found" });
+  }
+
+  filterAsks.sort((a,b) => a.price - b.price)
+
+  let sum = 0;
+  let n = 0;
+  let q = quantity;
+
+  for(let i=0; i < filterAsks.length; i++) {
+    sum += filterAsks[i].price * filterAsks[i].quantity;
+    n += filterAsks[i].quantity;
+
+    if (q < filterAsks[i].quantity) {
+           break
+    } else {
+      q -= filterAsks[i].quantity;
+    }
+
+  }
+
+  const quote = sum / n;
+
+  return res.json({ "quote": quote * quantity});
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
