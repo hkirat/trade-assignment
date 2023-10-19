@@ -121,8 +121,40 @@ app.get("/balance/:userId", (req, res) => {
   res.json({ balances: user.balances });
 })
 
-app.get("/quote", (req, res) => {
+app.post("/quote", (req, res) => {
   // TODO: Assignment
+  const side: string = req.body.side;
+  const quantity: number = req.body.quantity;
+  let total_price: number = 0;
+  let curr_quantity = quantity;
+
+  if (side === "bid") {
+    for (let i = 0;i <= asks.length - 1;i++) {
+      if (asks[i].quantity >= curr_quantity) {
+        total_price += (asks[i].price * curr_quantity);
+        curr_quantity = 0;
+        break;
+      } else {
+        total_price += (asks[i].price * asks[i].quantity);
+        curr_quantity -= asks[i].quantity;
+      }
+    }
+  } else {
+    for (let i = 0;i <= bids.length - 1;i++) {
+      if (bids[i].quantity >= curr_quantity) {
+        total_price += (bids[i].price * curr_quantity);
+        curr_quantity = 0;
+        break;
+      } else {
+        total_price += bids[i].price * bids[i].quantity;
+        curr_quantity -= bids[i].quantity;
+      }
+    }
+  }
+
+  res.json({
+    quote: total_price
+  })
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
