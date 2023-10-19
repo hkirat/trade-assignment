@@ -59,14 +59,14 @@ app.post("/order", (req: any, res: any) => {
       price,
       quantity: remainingQty
     });
-    bids.sort((a, b) => a.price < b.price ? 1 : -1);
+    bids.sort((a, b) => a.price < b.price ? -1 : 1);
   } else {
     asks.push({
       userId,
       price,
       quantity: remainingQty
     })
-    asks.sort((a, b) => a.price < b.price ? -1 : 1);
+    asks.sort((a, b) => a.price < b.price ? 1 : -1);
   }
 
   res.json({
