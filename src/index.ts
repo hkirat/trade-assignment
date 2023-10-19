@@ -1,5 +1,5 @@
-import express from "express";
-import bodyParser from "body-parser";
+import express from 'express';
+import bodyParser from 'body-parser';
 
 export const app = express();
 
@@ -12,7 +12,7 @@ interface Balances {
 interface User {
   id: string;
   balances: Balances;
-};
+}
 
 interface Order {
   userId: string;
@@ -20,27 +20,30 @@ interface Order {
   quantity: number;
 }
 
-export const TICKER = "GOOGLE";
+export const TICKER = 'GOOGLE';
 
-const users: User[] = [{
-  id: "1",
-  balances: {
-    "GOOGLE": 10,
-    "USD": 50000
-  }
-}, {
-  id: "2",
-  balances: {
-    "GOOGLE": 10,
-    "USD": 50000
-  }
-}];
+const users: User[] = [
+  {
+    id: '1',
+    balances: {
+      GOOGLE: 10,
+      USD: 50000,
+    },
+  },
+  {
+    id: '2',
+    balances: {
+      GOOGLE: 10,
+      USD: 50000,
+    },
+  },
+];
 
 const bids: Order[] = [];
 const asks: Order[] = [];
 
 // Place a limit order
-app.post("/order", (req: any, res: any) => {
+app.post('/order', (req: any, res: any) => {
   const side: string = req.body.side;
   const price: number = req.body.price;
   const quantity: number = req.body.quantity;
@@ -53,40 +56,40 @@ app.post("/order", (req: any, res: any) => {
     return;
   }
 
-  if (side === "bid") {
+  if (side === 'bid') {
     bids.push({
       userId,
       price,
-      quantity: remainingQty
+      quantity: remainingQty,
     });
-    bids.sort((a, b) => a.price < b.price ? 1 : -1);
+    bids.sort((a, b) => (a.price < b.price ? -1 : 1));
   } else {
     asks.push({
       userId,
       price,
-      quantity: remainingQty
-    })
-    asks.sort((a, b) => a.price < b.price ? -1 : 1);
+      quantity: remainingQty,
+    });
+    asks.sort((a, b) => (a.price < b.price ? 1 : -1));
   }
 
   res.json({
     filledQuantity: quantity - remainingQty,
-  })
-})
+  });
+});
 
-app.get("/depth", (req: any, res: any) => {
+app.get('/depth', (req: any, res: any) => {
   const depth: {
     [price: string]: {
-      type: "bid" | "ask",
-      quantity: number,
-    }
+      type: 'bid' | 'ask';
+      quantity: number;
+    };
   } = {};
 
   for (let i = 0; i < bids.length; i++) {
     if (!depth[bids[i].price]) {
       depth[bids[i].price] = {
         quantity: bids[i].quantity,
-        type: "bid"
+        type: 'bid',
       };
     } else {
       depth[bids[i].price].quantity += bids[i].quantity;
@@ -97,60 +100,101 @@ app.get("/depth", (req: any, res: any) => {
     if (!depth[asks[i].price]) {
       depth[asks[i].price] = {
         quantity: asks[i].quantity,
-        type: "ask"
-      }
+        type: 'ask',
+      };
     } else {
       depth[asks[i].price].quantity += asks[i].quantity;
     }
   }
 
   res.json({
-    depth
-  })
-})
+    depth,
+  });
+});
 
-app.get("/balance/:userId", (req, res) => {
+app.get('/balance/:userId', (req, res) => {
   const userId = req.params.userId;
-  const user = users.find(x => x.id === userId);
+  const user = users.find((x) => x.id === userId);
   if (!user) {
     return res.json({
       USD: 0,
-      [TICKER]: 0
-    })
+      [TICKER]: 0,
+    });
   }
   res.json({ balances: user.balances });
-})
+});
 
-app.get("/quote", (req, res) => {
-  // TODO: Assignment
+app.post('/quote', (req, res) => {
+  const side = req.body.side as string;
+  const quantity = req.body.quantity as number;
+  const userId = req.body.userId as string;
+
+  let quote = 0;
+  let quantityLeft = quantity;
+
+  if (side === 'bid') {
+    for (let i = asks.length - 1; i >= 0; i--) {
+      if (asks[i].userId === userId) {
+        continue;
+      }
+
+      if (asks[i].quantity > quantityLeft) {
+        quote += quantityLeft * asks[i].price;
+        break;
+      } else {
+        quote += asks[i].quantity * asks[i].price;
+        quantityLeft -= asks[i].quantity;
+      }
+    }
+  } else if (side === 'ask') {
+    for (let i = bids.length - 1; i >= 0; i--) {
+      if (bids[i].userId === userId) {
+        continue;
+      }
+
+      if (bids[i].quantity > quantityLeft) {
+        quote += quantityLeft * bids[i].price;
+        break;
+      } else {
+        quote += bids[i].quantity * bids[i].price;
+        quantityLeft -= bids[i].quantity;
+      }
+    }
+  } else {
+    return res.status(400).json({ error: 'Invalid side' });
+  }
+
+  res.json({
+    quote,
+  });
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
-  let user1 = users.find(x => x.id === userId1);
-  let user2 = users.find(x => x.id === userId2);
+  let user1 = users.find((x) => x.id === userId1);
+  let user2 = users.find((x) => x.id === userId2);
   if (!user1 || !user2) {
     return;
   }
   user1.balances[TICKER] -= quantity;
   user2.balances[TICKER] += quantity;
-  user1.balances["USD"] += (quantity * price);
-  user2.balances["USD"] -= (quantity * price);
+  user1.balances['USD'] += quantity * price;
+  user2.balances['USD'] -= quantity * price;
 }
 
 function fillOrders(side: string, price: number, quantity: number, userId: string): number {
   let remainingQuantity = quantity;
-  if (side === "bid") {
+  if (side === 'bid') {
     for (let i = asks.length - 1; i >= 0; i--) {
       if (asks[i].price > price) {
         continue;
       }
       if (asks[i].quantity > remainingQuantity) {
         asks[i].quantity -= remainingQuantity;
-        flipBalance(asks[i].userId, userId, remainingQuantity, price);
+        flipBalance(asks[i].userId, userId, remainingQuantity, asks[i].price);
         return 0;
       } else {
         remainingQuantity -= asks[i].quantity;
-        flipBalance(asks[i].userId, userId, asks[i].quantity, price);
+        flipBalance(asks[i].userId, userId, asks[i].quantity, asks[i].price);
         asks.pop();
       }
     }
@@ -173,4 +217,3 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
 
   return remainingQuantity;
 }
-
