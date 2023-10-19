@@ -123,6 +123,47 @@ app.get("/balance/:userId", (req, res) => {
 
 app.get("/quote", (req, res) => {
   // TODO: Assignment
+
+  const { quantity, side, userId } = req.body;
+
+  if (!quantity || !side || !userId) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+  if (quantity === 0) {
+    return res.status(400).json({ error: "Quantity must be non zero" });
+  }
+
+  let totalPrice:number = 0;
+  let currQuant = quantity;
+  let qoutePrice:number = 0;
+
+  if (side === "bid") {
+      for (let i = 0; i < asks.length; i++) {
+        if(currQuant <= asks[i].quantity){
+          totalPrice = totalPrice + (currQuant * asks[i].price);
+          qoutePrice = totalPrice/(i+1);
+          break;
+        }
+        else{
+          totalPrice = totalPrice + (asks[i].quantity * asks[i].price);
+          currQuant = currQuant - asks[i].quantity;
+        }
+      }
+  } else {
+    for (let i = 0; i < bids.length; i++) {
+      if(currQuant <= bids[i].quantity){
+        totalPrice = totalPrice + (currQuant * bids[i].price);
+        qoutePrice = totalPrice/(i+1);
+        break;
+      }
+      else{
+        totalPrice = totalPrice + (bids[i].quantity * bids[i].price);
+        currQuant = currQuant - bids[i].quantity;
+      }
+    }
+  }
+
+  res.status(200).json({ qoute:qoutePrice});
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
