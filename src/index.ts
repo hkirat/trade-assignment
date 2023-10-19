@@ -150,7 +150,7 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
         return 0;
       } else {
         remainingQuantity -= asks[i].quantity;
-        flipBalance(asks[i].userId, userId, asks[i].quantity, price);
+        flipBalance(asks[i].userId, userId, asks[i].quantity, asks[i].price);
         asks.pop();
       }
     }
@@ -161,11 +161,11 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       }
       if (bids[i].quantity > remainingQuantity) {
         bids[i].quantity -= remainingQuantity;
-        flipBalance(userId, bids[i].userId, remainingQuantity, price);
+        flipBalance(userId, bids[i].userId, remainingQuantity, , bids[i].price);
         return 0;
       } else {
         remainingQuantity -= bids[i].quantity;
-        flipBalance(userId, bids[i].userId, bids[i].quantity, price);
+        flipBalance(userId, bids[i].userId, bids[i].quantity, , bids[i].price);
         bids.pop();
       }
     }
