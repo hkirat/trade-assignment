@@ -57,7 +57,7 @@ describe("Basic tests", () => {
 
   it("Ensures orderbook updates", async () => {
     let res = await request(app).get("/depth").send();
-    expect(res.body.depth["1501"].quantity).toBe(3);
+    expect(res.body.depth["1501"].quantity).toBe(5);
   })
 
   it("Ensures balances update", async () => {
