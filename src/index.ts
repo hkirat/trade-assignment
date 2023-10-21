@@ -1,5 +1,5 @@
-import express from "express";
-import bodyParser from "body-parser";
+import express from 'express';
+import bodyParser from 'body-parser';
 
 export const app = express();
 
@@ -59,7 +59,7 @@ app.post("/order", (req: any, res: any) => {
       price,
       quantity: remainingQty
     });
-    bids.sort((a, b) => a.price < b.price ? -1 : 1);
+    bids.sort((a, b) => a.price > b.price ?1 : -1);
   } else {
     asks.push({
       userId,
@@ -121,9 +121,41 @@ app.get("/balance/:userId", (req, res) => {
   res.json({ balances: user.balances });
 })
 
-app.get("/quote", (req, res) => {
-  // TODO: Assignment
+app.post("/quote", (req, res) => {
+  const side = req.body.side;
+  const quantity = req.body.quantity;
+  let total_price = 0;
+  let curr_quantity = quantity;
+
+  if (side === "bid") {
+    for (let i = 0; i < asks.length; i++) {
+      if (asks[i].quantity >= curr_quantity) {
+        total_price += asks[i].price * curr_quantity;
+        curr_quantity = 0;
+        break;
+      } else {
+        total_price += asks[i].price * asks[i].quantity;
+        curr_quantity -= asks[i].quantity;
+      }
+    }
+  } else if (side === "ask") {
+    for (let i = 0; i < bids.length; i++) {
+      if (bids[i].quantity >= curr_quantity) {
+        total_price += bids[i].price * curr_quantity;
+        curr_quantity = 0;
+        break;
+      } else {
+        total_price += bids[i].price * bids[i].quantity;
+        curr_quantity -= bids[i].quantity;
+      }
+    }
+  }
+
+  const quote = total_price / quantity;
+
+  res.json({ "quote": quote });
 });
+
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
   let user1 = users.find(x => x.id === userId1);
