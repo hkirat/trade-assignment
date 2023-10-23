@@ -1,5 +1,5 @@
-import express from "express";
-import bodyParser from "body-parser";
+import express from 'express';
+import bodyParser from 'body-parser';
 
 export const app = express();
 
@@ -123,6 +123,47 @@ app.get("/balance/:userId", (req, res) => {
 
 app.get("/quote", (req, res) => {
   // TODO: Assignment
+  const side: string = req.body.side;
+  const price: number = req.body.price;
+  const quantity: number = req.body.quantity;
+  const userId: string = req.body.userId;
+  const asksLength = asks.length
+  const bidsLength = bids.length
+  var finalQuote = 0
+  var tempQuantity = quantity
+  if (side == "bid"){
+    for (let i = 0; i < asksLength; i++ )
+    {
+      if (userId != asks[i].userId){
+        //If the bid is for suppose 10 units and asks has 15 Units
+        if (quantity <= asks[i].quantity){
+          finalQuote += quantity * asks[i].price
+          // quote /= 
+          break
+          //average
+        }
+      }
+      // If the bid is for suppose 10 units and asks has onl5 units
+      else{
+        finalQuote += asks[i].quantity*asks[i].price
+        tempQuantity -= asks[i].quantity
+      }
+    }
+  }
+  else {
+    for (let i = 0 ; i< bidsLength;i++){
+      if (userId!=bids[i].userId){
+        if (quantity <= bids[i].quantity){
+          finalQuote += quantity * bids[i].price
+        }
+      }
+      else{
+        finalQuote += bids[i].quantity*bids[i].price
+        tempQuantity -= bids[i].quantity
+      }
+    }
+  }
+  res.json({ "status": 200 ,"Quote": finalQuote });
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
