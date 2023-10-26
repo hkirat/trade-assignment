@@ -59,14 +59,14 @@ app.post("/order", (req: any, res: any) => {
       price,
       quantity: remainingQty
     });
-    bids.sort((a, b) => a.price < b.price ? -1 : 1);
+    bids.sort((a, b) => a.price - b.price);
   } else {
     asks.push({
       userId,
       price,
       quantity: remainingQty
     })
-    asks.sort((a, b) => a.price < b.price ? 1 : -1);
+    asks.sort((a, b) => b.price - a.price);
   }
 
   res.json({
@@ -121,9 +121,39 @@ app.get("/balance/:userId", (req, res) => {
   res.json({ balances: user.balances });
 })
 
-app.get("/quote", (req, res) => {
-  // TODO: Assignment
+app.post("/quote", (req, res) => {
+  const side = req.body.side;
+  const quantity = req.body.quantity;
+  const userId = req.body.userId;
+
+  // Start with an initial quote amount of 0
+  let quote = 0;
+
+  if (side === "bid") {
+    // Calculate the quote for a bid request
+    const bestAskPrice = findBestAskPrice();
+    quote = bestAskPrice * quantity;
+  } else if (side === "ask") {
+    // Calculate the quote for an ask request
+    const bestBidPrice = findBestBidPrice();
+    quote = bestBidPrice * quantity;
+  } else {
+    res.status(400).json({ error: "Invalid 'side' parameter. Please use 'bid' or 'ask'." });
+    return;
+  }
+
+  res.json({ quote });
 });
+
+// Helper function to find the best ask price in the order book
+function findBestAskPrice() {
+  return Math.min(...asks.map((ask) => ask.price));
+}
+
+// Helper function to find the best bid price in the order book
+function findBestBidPrice() {
+  return Math.max(...bids.map((bid) => bid.price));
+}
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
   let user1 = users.find(x => x.id === userId1);
