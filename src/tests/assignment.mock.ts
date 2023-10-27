@@ -11,7 +11,7 @@ describe("Can create a bid", () => {
     });
 
     await request(app).post("/order").send({
-      tyGpe: "limit",
+      type: "limit",
       side: "ask",
       price: 1400.9,
       quantity: 10,
