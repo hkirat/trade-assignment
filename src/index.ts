@@ -64,8 +64,7 @@ app.post("/order", (req: any, res: any) => {
     res.json({ filledQuantity: quantity });
     return;
   }
-  console.log("FoK!!! this shouldnt print")
-  console.log("Remaining qty:", remainingQty)
+
   if (side === 'bid') {
     bids.push({
       userId: userId,
@@ -82,8 +81,6 @@ app.post("/order", (req: any, res: any) => {
     asks.sort((a, b) => a.price < b.price ? 1 : -1);
   }
 
-  console.log(asks);
-  console.log(bids);
 
   res.json({
     filledQuantity: quantity - remainingQty,
@@ -192,17 +189,7 @@ app.post("/quote", (req, res) => {
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
   let user1 = users.find((x) => x.id === userId1);
   let user2 = users.find((x) => x.id === userId2);
-  // if (!user1 || !user2) {
-  //   console.log("Users not found")
-  //   return;
-  // }
-
-  if(!user2) {
-    console.log("User 2 not found")
-    return;
-  }
-  if(!user1) {
-    console.log("User 1 not found")
+  if (!user1 || !user2) {
     return;
   }
 
@@ -220,8 +207,9 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       if (asks[i].price > price) {
         break;
       }
-      console.log("Ask qty:",asks[i].quantity);
-      console.log("Order qty:",remainingQuantity);
+      if(asks[i].userId === userId) {
+        continue;
+      }
       if (asks[i].quantity > remainingQuantity) {
         asks[i].quantity -= remainingQuantity;
         flipBalance(asks[i].userId, userId, remainingQuantity, asks[i].price);
@@ -236,6 +224,9 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
     for (let i = 0; i < bids.length; i++) {
       if (bids[i].price > price) {
         break;
+      }
+      if(bids[i].userId === userId) {
+        continue;
       }
       if (bids[i].quantity > remainingQuantity) {
         bids[i].quantity -= remainingQuantity;
