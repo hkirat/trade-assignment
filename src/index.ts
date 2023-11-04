@@ -122,7 +122,14 @@ app.get("/balance/:userId", (req, res) => {
 })
 
 app.get("/quote", (req, res) => {
-  // TODO: Assignment
+  let sum = 0;
+  for (let i = 0; i < asks.length; i++) {
+    sum += asks[i].price;
+  }
+  const avg = sum / asks.length;
+  res.json({
+    avg
+  })
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
@@ -151,7 +158,7 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       } else {
         remainingQuantity -= asks[i].quantity;
         flipBalance(asks[i].userId, userId, asks[i].quantity, asks[i].price);
-        asks.pop();
+        asks.splice(i, 1); // 1st bug
       }
     }
   } else {
@@ -166,7 +173,7 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       } else {
         remainingQuantity -= bids[i].quantity;
         flipBalance(userId, bids[i].userId, bids[i].quantity, price);
-        bids.pop();
+        bids.splice(i, 1); // 2nd bug
       }
     }
   }
