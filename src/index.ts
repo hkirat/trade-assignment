@@ -59,14 +59,14 @@ app.post("/order", (req: any, res: any) => {
       price,
       quantity: remainingQty
     });
-    bids.sort((a, b) => a.price < b.price ? -1 : 1);
+    bids.sort((a, b) => a.price - b.price);
   } else {
     asks.push({
       userId,
       price,
       quantity: remainingQty
     })
-    asks.sort((a, b) => a.price < b.price ? 1 : -1);
+    asks.sort((a, b) => b.price - a.price);
   }
 
   res.json({
@@ -109,7 +109,7 @@ app.get("/depth", (req: any, res: any) => {
   })
 })
 
-app.get("/balance/:userId", (req, res) => {
+app.get("/balance/:userId", (req : any , res : any ) => {
   const userId = req.params.userId;
   const user = users.find(x => x.id === userId);
   if (!user) {
@@ -121,9 +121,99 @@ app.get("/balance/:userId", (req, res) => {
   res.json({ balances: user.balances });
 })
 
-app.get("/quote", (req, res) => {
-  // TODO: Assignment
+app.post("/order", (req: any, res: any) => {
+  const side: string = req.body.side;
+  const price: number = req.body.price;
+  const quantity: number = req.body.quantity;
+  const userId: string = req.body.userId;
+
+  const isOrderPossible = checkOrderPossibility(side, price, quantity);
+
+  if (!isOrderPossible) {
+    res.json({ success: false, message: 'Order not possible' });
+    return;
+  }
+
+  const remainingQty = fillOrders(side, price, quantity, userId);
+
+  if (remainingQty === 0) {
+    res.json({ success: true, message: 'Order placed successfully' });
+    return;
+  }
+
+  if (side === "bid") {
+    bids.push({
+      userId,
+      price,
+      quantity: remainingQty
+    });
+    bids.sort((a, b) => a.price - b.price);
+  } else {
+    asks.push({
+      userId,
+      price,
+      quantity: remainingQty
+    });
+    asks.sort((a, b) => b.price - a.price);
+  }
+
+  res.json({
+    success: true,
+    message: 'Order placed successfully, waiting for matching',
+    remainingQuantity: remainingQty
+  });
 });
+
+// Function to check if the order is possible
+
+app.get("/quote", (req: any, res: any) => {
+  const requestedQuantity: number = req.query.quantity; // Quantity of stocks requested by the user
+
+  // Calculate the average price for the requested quantity
+  let remainingQty = requestedQuantity;
+  let totalPrice = 0;
+  let count = 0;
+
+  // Iterate through the asks array to calculate the average price
+  for (let i = 0; i < asks.length; i++) {
+    if (asks[i].quantity >= remainingQty) {
+      totalPrice += remainingQty * asks[i].price;
+      count += remainingQty;
+      remainingQty = 0;
+      break;
+    } else {
+      totalPrice += asks[i].quantity * asks[i].price;
+      count += asks[i].quantity;
+      remainingQty -= asks[i].quantity;
+    }
+  }
+
+  // If the requested quantity is not fulfilled by asks, check bids for the remaining quantity
+  if (remainingQty > 0) {
+    for (let i = 0; i < bids.length; i++) {
+      if (bids[i].quantity >= remainingQty) {
+        totalPrice += remainingQty * bids[i].price;
+        count += remainingQty;
+        remainingQty = 0;
+        break;
+      } else {
+        totalPrice += bids[i].quantity * bids[i].price;
+        count += bids[i].quantity;
+        remainingQty -= bids[i].quantity;
+      }
+    }
+  }
+
+  if (count === 0) {
+    res.json({ success: false, message: 'Quote not possible for the requested quantity' });
+    return;
+  }
+
+  const averagePrice = totalPrice / count;
+
+  res.json({ success: true, averagePrice, quantityFilled: count });
+});
+
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
   let user1 = users.find(x => x.id === userId1);
@@ -135,6 +225,7 @@ function flipBalance(userId1: string, userId2: string, quantity: number, price: 
   user2.balances[TICKER] += quantity;
   user1.balances["USD"] += (quantity * price);
   user2.balances["USD"] -= (quantity * price);
+  
 }
 
 function fillOrders(side: string, price: number, quantity: number, userId: string): number {
@@ -144,8 +235,8 @@ function fillOrders(side: string, price: number, quantity: number, userId: strin
       if (asks[i].price > price) {
         continue;
       }
-      if (asks[i].quantity > remainingQuantity) {
-        asks[i].quantity -= remainingQuantity;
+      if (asks[i].price > remainingQuantity) {
+        asks[i].price -= remainingQuantity;
         flipBalance(asks[i].userId, userId, remainingQuantity, asks[i].price);
         return 0;
       } else {
