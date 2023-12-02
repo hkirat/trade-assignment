@@ -2,9 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 
 export const app = express();
-
-app.use(bodyParser({}));
-
+app.use(express.json());
 interface Balances {
   [key: string]: number;
 }
@@ -123,6 +121,24 @@ app.get("/balance/:userId", (req, res) => {
 
 app.get("/quote", (req, res) => {
   // TODO: Assignment
+  const side = req.body.side;
+  let q = req.body.quantity
+  let val=0.0;
+  if(side == "bid"){
+    for(let i=asks.length-1; i>=0 ;i--){
+      if(q-asks[i].quantity>=0){
+        val = val+asks[i].price*asks[i].quantity;
+        q=q-asks[i].quantity;
+      }
+      else{
+        val = val + asks[i].price*q;
+        break;
+      }
+    }
+  }
+  val = val
+  res.json({quote:val});
+
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
