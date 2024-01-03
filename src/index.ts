@@ -123,6 +123,23 @@ app.get("/balance/:userId", (req, res) => {
 
 app.get("/quote", (req, res) => {
   // TODO: Assignment
+
+  let quoteQuantity: number = req.body.quantity;
+  let tempPrice = 0.0;
+
+  for (let i = asks.length - 1, j = 1; i >= 0; i--, j++) {
+    if (asks[i].quantity > quoteQuantity) {
+      tempPrice = (tempPrice + asks[i].price) / j;
+      break;
+    }
+
+    if (asks[i].quantity < quoteQuantity) {
+      quoteQuantity = quoteQuantity - asks[i].quantity; tempPrice = (tempPrice +
+        asks[i].price) / j;
+    }
+  }
+
+  res.json({ quote: tempPrice * req.body.quantity });
 });
 
 function flipBalance(userId1: string, userId2: string, quantity: number, price: number) {
